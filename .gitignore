@@ -1,0 +1,29 @@
+# Local credentials and operator configuration
+.env
+.env.*
+!.env.example
+mise.local.toml
+*.pem
+*.key
+local.settings.json
+
+# Private run output
+/logs/
+/runs/
+/artifacts/
+*.log
+
+# Planned Scala/JVM build and IDE output
+target/
+project/project/
+.bsp/
+.bloop/
+.metals/
+.idea/
+.vscode/
+
+# Documentation tooling and OS files
+__pycache__/
+*.py[cod]
+.DS_Store
+Thumbs.db
