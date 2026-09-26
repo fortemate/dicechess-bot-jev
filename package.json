@@ -1,0 +1,28 @@
+{
+  "name": "@fortemate/dicechess-bot-jev",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Offline adaptive legal-turn planner for an experimental Jev Dice Chess bot.",
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "engines": {
+    "node": ">=22.23.3 <23 || >=24.21.0 <25 || >=26.8.2 <27"
+  },
+  "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node --test tests/*.test.mjs",
+    "check:docs": "python3 scripts/check_docs.py && git diff --check",
+    "check": "npm run format:check && npm run typecheck && npm test && npm run check:docs"
+  },
+  "dependencies": {
+    "@fortemate/dicechess-bot-runtime": "0.1.0-alpha.1",
+    "@fortemate/dicechess-engine": "0.13.0"
+  },
+  "devDependencies": {
+    "prettier": "3.9.9",
+    "typescript": "7.0.2"
+  }
+}

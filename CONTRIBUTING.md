@@ -1,6 +1,6 @@
 # Contributing
 
-This repository is at the documentation/bootstrap stage. Start with the
+This repository contains an offline planner, not a deployed bot. Start with the
 [architecture](docs/architecture.md) and [roadmap](docs/roadmap.md), and keep each
 implementation pull request focused on one milestone or a bounded part of it.
 
@@ -16,17 +16,22 @@ implementation pull request focused on one milestone or a bounded part of it.
 
 ## Current checks
 
-Requires Git and Python 3.11 or newer, with no third-party packages:
+Requires Git, mise, and Python 3.11 or newer:
 
 ```sh
-python3 scripts/check_docs.py
+mise install
+mise exec -- npm ci --ignore-scripts
+mise run format
+mise run check
 git diff --check
 ```
 
-The documentation check validates local file targets, UTF-8, final newlines, and
-trailing whitespace in Markdown. It does not resolve external URLs or anchors.
-The implementation milestone will add Scala formatting, compilation, and tests
-to the same CI gate. There is no bot build command yet.
+`mise run format` formats the TypeScript sources. `mise run check` maps to the
+package check, which runs formatting checks, build, typecheck, tests, and the
+Python documentation check. Documentation validation checks local file targets,
+UTF-8, final newlines, and trailing whitespace in Markdown; it does not resolve
+external URLs or anchors. These checks cover the offline planner, not a runnable
+bot server, provider transport, or live gameplay.
 
 ## Contribution boundaries
 

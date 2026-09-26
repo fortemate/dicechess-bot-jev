@@ -1,0 +1,10 @@
+[tools]
+node = "26.8.2"
+
+[tasks.format]
+description = "Format source, tests and documentation"
+run = "npm run format"
+
+[tasks.check]
+description = "Run the offline formatting, type, test and documentation gate"
+run = "npm run check"
