@@ -1,6 +1,6 @@
 # Architecture
 
-Status: accepted design, implementation pending.
+Status: offline planner implemented; provider and webhook integration pending.
 
 ## Objective
 
@@ -10,14 +10,17 @@ transitions, and transport. It does not rank moves by playing strength.
 
 ## Boundaries
 
-The platform supplies an authoritative position, state version, and legal turns.
-The shared runtime exposes complete UCI paths in `TurnContext.legalMoves` and can
-fetch the uncapped move tree when it was omitted from the webhook. Each decision
-must stay bound to the same game, seat, state version, and root DFEN.
+Webhook integration will take the authoritative legal-turn tree from the public
+JS runtime. The offline planner receives that tree and retains its original
+allowed leaves throughout traversal. Synthetic tests use `getLegalTurnTree` on
+the full engine entry to obtain canonical fixtures. Runtime
+webhook integration and binding decisions to a game, seat, state version, and
+root DFEN remain future work.
 
-The rules engine supplies intermediate positions and remaining dice for the
-prompt. The original server tree remains the allowed choice set; regenerating
-moves from a later position must never add a new branch to it.
+The `@fortemate/dicechess-engine` 0.13.0 rules API (`rules.applyMove`) supplies
+intermediate DFEN and remaining dice. The original tree remains the allowed
+choice set; do not call `getLegalUciMoves` again after a prefix to expand
+choices.
 
 The Jev adapter owns structured requests and validates returned option IDs.
 The webhook boundary submits a complete `TurnAction` only after final validation.
@@ -25,9 +28,11 @@ Provider calls and all intermediate choices happen before that submission.
 
 ## Adaptive traversal
 
-Build a prefix tree from the original complete legal paths. Keep an immutable
-reference to that set and a per-request cursor with the selected prefix, current
-position, and remaining dice.
+`src/planner.ts` exports `planTurn(input, client, limits, control)`. The client
+implements `choose(question, control)` and returns an option ID. Snapshot and
+freeze the original prefix tree. Keep that immutable tree and a per-request
+cursor with the selected prefix, current position,
+and remaining dice.
 
 At each cursor:
 
@@ -36,11 +41,14 @@ At each cursor:
 2. If exactly one complete continuation remains, append it without inference.
    A shared, forced next micro-move may likewise be advanced locally.
 3. If all remaining complete suffixes fit both request limits, offer all of them
-   as choices. Resolve Jev's selected ID back to the exact stored suffix.
-4. Otherwise offer every distinct next micro-move at this node. Resolve the
-   selected ID, advance into that child, update the position, and repeat.
+   as choices. Resolve the selected ID back to the exact stored suffix.
+4. Otherwise offer every distinct next micro-move at this node. If the question
+   is still oversized, split the sorted UCI choices into deterministic,
+   balanced contiguous ranges and repeat recursively. Resolve the selected ID,
+   advance into that child, update the position, and repeat.
 5. Before returning a turn, verify exact sequence membership in the original
-   legal paths and confirm that the request context is still current.
+   legal paths and check the original deadline/cancellation signal. Binding the
+   context to a live game/version is part of the future webhook integration.
 
 For example, a large root may require one micro-move decision, after which the
 remaining complete suffixes fit into a single second request. The planner must
@@ -53,27 +61,34 @@ not authorize playing an arbitrary legal move.
 
 ## Request limits and representation
 
-As of 2026-09-24, TypeSafe documents a maximum of **255 options per Choice**.
-The adapter must check the selected provider's current contract before enabling
-live calls. The configured full-continuation threshold must respect that cap and
-a separate serialized request/context budget. Count alone is insufficient.
+The caller must provide explicit positive values for `maxOptions`,
+`maxQuestionBytes`, `maxTreeNodes`, and `maxTreeDepth`. There are no production
+defaults. The planner measures the exact serialized question JSON against the
+byte limit. These option-count and byte thresholds have not been measured
+against a live provider token limit; provider contracts must be checked before
+enabling live calls.
 
 Apply the same limits to a next-micro-move question. If it still does not fit,
-partition choices structurally, for example by source square, then destination
-and promotion. Every branch must remain reachable; never truncate options or
-select a subset by evaluation. If even the minimum state and question cannot
-fit, return an explicit size error. Structural grouping may require additional
-calls beyond the number of micro-moves.
+partition choices into deterministic lexicographic UCI ranges. Every branch
+must remain reachable; never truncate options or select a subset by evaluation.
+If even the minimum state and question cannot fit, return an explicit size
+error. Structural grouping may require additional calls.
 
-Each request carries the Dice Chess rules, original roll, selected prefix,
-current position, remaining dice, and a clear distinction between choosing a
-full continuation and choosing only the next micro-move. The moving side remains
+The byte limit applies to the serialized neutral decision question. Any final
+provider prompt and token overhead belong to the adapter and must be budgeted
+there when transport is added.
+
+Each neutral question carries the original roll, selected prefix, root and current
+position, remaining dice, and a distinction between a full continuation, a
+micro-move, and a structural group. The future provider adapter must add the
+Dice Chess rules and versioned instructions. The moving side remains
 unchanged until the turn is complete. Option IDs map to exact stored paths or
 branches; free-form move text is never executed.
 
-Fix and record the model version and prompt version for an experiment. Avoid a
-moving `latest` alias. Choice confidence is model confidence in its selection,
-not a measured probability of winning the game or an engine evaluation.
+Versioned provider prompts and model selection are pending with the provider
+integration. Choice confidence, if later exposed, is model confidence in its
+selection, not a measured probability of winning the game or an engine
+evaluation.
 
 ## Dice Chess invariants
 
@@ -115,21 +130,23 @@ Use synthetic fixtures in public tests. Operational configuration and experiment
 results remain outside this public repository under Fortemate's publication
 policy. No live provider request is part of normal builds or CI.
 
-## Validation
+## Implemented scope and validation
 
-Prove that every original legal leaf is reachable through structural decisions
-and that every returned sequence is an original leaf. Cover full-suffix mode,
-micro-move mode, switching modes after a prefix, forced choices, oversized
-questions, and all terminal conditions with a mocked decision client.
+The offline planner uses a mocked decision client and engine-backed fixtures to
+check full-suffix mode, micro-move mode, switching modes after a prefix, forced
+choices, oversized questions, and terminal conditions. It makes no paid HTTP
+calls and does not register, deploy, or run a bot server. Provider transport
+tests for malformed responses, deadlines, cancellation, redaction, and
+duplicate deliveries remain future work.
 
-Use engine-backed fixtures for dice consumption and intermediate state. Add
-transport tests for malformed responses, deadlines, cancellation, redaction, and
-duplicate deliveries before conducting separately authorized live smoke tests.
+Before adding transport, cover malformed provider responses, deadlines,
+cancellation, redaction, and duplicate deliveries. Any live smoke test is a
+separate operator action.
 
 ## References
 
 - [Fortemate Bot API](https://bots.fortemate.com/)
-- [Runtime turn context](https://github.com/fortemate/dicechess-bot-runtime#turn-context)
+- [Runtime turn context](https://github.com/fortemate/dicechess-bot-runtime-js/blob/main/src/protocol.ts)
 - [Dice Chess Engine](https://github.com/fortemate/dicechess-engine)
 - [TypeSafe Choice](https://docs.typesafe.ai/primitives/choice)
 - [OpenRouter Jev Decisions API](https://openrouter.ai/blog/insights/what-is-jev/)

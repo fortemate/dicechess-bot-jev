@@ -13,12 +13,10 @@ local.settings.json
 /artifacts/
 *.log
 
-# Planned Scala/JVM build and IDE output
-target/
-project/project/
-.bsp/
-.bloop/
-.metals/
+# Node build and IDE output
+node_modules/
+dist/
+coverage/
 .idea/
 .vscode/
 

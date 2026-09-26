@@ -4,10 +4,10 @@ Agent guidance for `fortemate/dicechess-bot-jev`.
 
 ## Repository scope
 
-This is the documentation bootstrap for an experimental Dice Chess bot.
-There is no runnable bot, build definition, inference integration or deployment yet.
-Read [the architecture](docs/architecture.md) and [the roadmap](docs/roadmap.md)
-before implementing a milestone.
+This repository contains an offline adaptive planner for an experimental Dice
+Chess bot. It does not yet contain a runnable server, provider integration or
+deployment. Read [the architecture](docs/architecture.md) and
+[the roadmap](docs/roadmap.md) before implementing a milestone.
 
 - Jev makes every discretionary move choice. Do not introduce Hunter, heuristic
   pre-ranking, top-K pruning or a silent alternative playing strategy.
@@ -23,14 +23,16 @@ before implementing a milestone.
 Before every commit run:
 
 ```sh
-python3 scripts/check_docs.py
+mise exec -- npm ci --ignore-scripts
+mise run format
+mise run check
 git diff --check
 ```
 
-The Python script is a dependency-free documentation check, not the bot runtime.
-Milestone 1 must add pinned Scala/JVM tools, `mise run format`, `mise run check`,
-tests and the canonical Scala Definition of Done block together. Do not claim
-runtime or gameplay validation from the current documentation-only CI.
+The Node runtime is pinned to 22.23.3, 24.21.0 and 26.8.2 in CI; Python is
+installed for the documentation check included by `npm run check`. The planner
+is an offline library: no runnable server, provider integration or gameplay
+validation is implied by these checks.
 
 Release labeling and release automation are not configured at this stage.
 The shared policies below remain authoritative; their release conventions apply

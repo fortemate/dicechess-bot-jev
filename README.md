@@ -4,8 +4,8 @@ Experimental [Dice Chess](https://fortemate.com) webhook bot that lets
 [TypeSafe Jev](https://docs.typesafe.ai/primitives/choice) choose from every legal
 turn using adaptive, structured decisions through OpenRouter.
 
-**Status: repository bootstrap.** The architecture and implementation milestones
-are documented. There is no runnable bot, paid inference, or deployment yet.
+**Status: offline planner implemented.** The reusable planner is available, but
+there is no runnable server, provider integration, paid inference, or deployment.
 
 ## How it will choose a turn
 
@@ -26,33 +26,40 @@ The rules engine determines legality; Jev makes the decisions. The server remain
 authoritative when applying the turn. See [Architecture](docs/architecture.md)
 for the algorithm, state boundaries, failure handling, and provider constraints.
 
-## Planned implementation
+## Current implementation
 
-- **Scala 3 / JVM** for the bot service.
-- [dicechess-bot-runtime](https://github.com/fortemate/dicechess-bot-runtime)
-  for webhook authentication, turn context, and response transport.
-- [dicechess-engine](https://github.com/fortemate/dicechess-engine)
-  for canonical position transitions and dice accounting.
-- [OpenRouter Decisions API](https://openrouter.ai/blog/insights/what-is-jev/)
-  for Jev's structured choices.
+`planTurn(input, client, limits, control)` in `src/planner.ts` implements
+provider-independent traversal. The client supplies `choose(question, control)`
+and returns an option ID. Callers must set positive `maxOptions`,
+`maxQuestionBytes`, `maxTreeNodes`, and `maxTreeDepth` limits; the library does
+not assume production values. The engine supplies authoritative intermediate
+DFEN and dice state, while the planner retains the original legal tree.
 
-Dependency versions and build tooling will be pinned in the first implementation
-milestone. Ordinary tests and CI will use mocked provider responses and synthetic
-game states. See the [Roadmap](docs/roadmap.md) for the delivery order.
+The implementation uses
+[`@fortemate/dicechess-engine` 0.13.0](https://github.com/fortemate/dicechess-engine)
+and
+[`@fortemate/dicechess-bot-runtime` 0.1.0-alpha.1](https://github.com/fortemate/dicechess-bot-runtime-js).
+The runtime package is a dependency for public contracts; webhook serving and
+provider calls are not implemented. See the [Roadmap](docs/roadmap.md) for the
+remaining work.
 
-## Working with this bootstrap
+## Working with this repository
 
-With Git and Python 3.11 or newer installed:
+With [mise](https://mise.jdx.dev/) and Python 3.11 or newer installed:
 
 ```sh
-python3 scripts/check_docs.py
+mise install
+mise exec -- npm ci --ignore-scripts
+mise run format
+mise run check
 git diff --check
 ```
 
-These checks validate repository documentation and local file links, not bot
-behavior. They run in GitHub Actions as well. External links and Markdown anchors
-are reviewed separately. Python is used only for this bootstrap check; the
-planned bot runtime is Scala/JVM.
+These checks format and validate the offline library and its tests. `npm run
+check` also runs the Python documentation check. They make no paid provider
+calls and do not validate webhook serving or gameplay. External links and
+Markdown anchors are reviewed separately.
+CI also checks Node.js 22.23.3 and 24.21.0; the local mise pin is 26.8.2.
 
 ## Repository guide
 
