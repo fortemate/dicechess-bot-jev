@@ -10,38 +10,31 @@ implementation status, not a release or deployment commitment.
 - [x] Contribution/security guidance and canonical Fortemate agent policies.
 - [x] Offline documentation checks and GitHub Actions workflow.
 
-## 1. Build and legal-turn model
+## 1. Offline adaptive planner
 
-- [ ] Pin Scala, JDK, sbt, formatting tools, and test dependencies.
-- [ ] Add reproducible `mise` tasks and compilation/test CI.
-- [ ] Introduce an immutable legal-turn tree with prefix and leaf operations.
-- [ ] Define a provider-independent decision interface and explicit errors.
+- [x] Pin Node.js, TypeScript, formatting tools, and test dependencies.
+- [x] Add reproducible `mise` tasks and format/build/typecheck/test CI.
+- [x] Accept the authoritative legal-turn tree and preserve its original leaves
+      through traversal; use the public engine for synthetic fixtures and transitions.
+- [x] Implement provider-independent adaptive choices, explicit limits, and
+      typed planner errors.
 
-Acceptance: synthetic tests prove path preservation, empty-root semantics,
-single-continuation handling, and exact final path membership. No network or API
-key is required. Pin public engine/runtime artifacts when first introduced.
+Delivered with `@fortemate/dicechess-engine` 0.13.0 and
+`@fortemate/dicechess-bot-runtime` 0.1.0-alpha.1. Tests use synthetic
+engine-backed states and a mocked client; no network or API key is required.
 
-## 2. Adaptive decision planner
+## 2. Provider prompts and decisions
 
-- [ ] Select complete suffixes when all options fit the count and size limits.
-- [ ] Otherwise select the next micro-move, then reconsider complete suffixes.
-- [ ] Advance forced choices locally and handle oversized branches structurally.
-- [ ] Validate selected IDs and keep every legal path reachable.
-
-Acceptance: mocked choices cover all mode transitions, boundary sizes, malformed
-answers, and shorter terminal paths. No heuristic or score affects eligibility.
-
-## 3. Position context
-
-- [ ] Use the public rules engine to derive intermediate positions and dice.
 - [ ] Define versioned prompts for full continuations and next micro-moves.
-- [ ] Explain the Dice Chess win condition and turn structure explicitly.
+- [ ] Verify the selected provider's current option and request contracts.
+- [ ] Measure provider token budgets separately from the planner's caller-set
+      option-count and serialized-JSON-byte limits.
 
-Acceptance: engine-backed fixtures cover ordinary consumption, repeated-piece
-moves, castling, promotion, en passant, and king capture. Choices remain confined
-to the original tree throughout the turn.
+The offline planner supplies the adaptive traversal, structural grouping,
+forced-choice handling, and option-ID validation. There is no provider
+transport or production limit default yet.
 
-## 4. Jev transport
+## 3. Jev transport
 
 - [ ] Implement the OpenRouter Decisions client with a pinned model identifier.
 - [ ] Enforce request limits, deadlines, cancellation, and response validation.
@@ -52,7 +45,7 @@ Acceptance: local mocked HTTP tests cover success, provider errors, invalid
 choices, unavailable usage metadata, redaction, and late responses. CI makes no
 paid calls. Any live smoke test is a separate operator action.
 
-## 5. Webhook integration
+## 4. Webhook integration
 
 - [ ] Wire the planner into the shared runtime's current `BotStrategy` contract.
 - [ ] Resolve capped move trees without confusing missing data with forced pass.
@@ -63,7 +56,7 @@ Acceptance: signed local webhook tests return one complete legal turn, reject
 stale/partial results, and demonstrate failure and retry behavior against the
 pinned runtime. No automatic registration, ladder entry, or deployment.
 
-## 6. Controlled gameplay experiment
+## 5. Controlled gameplay experiment
 
 - [ ] Prepare an operator runbook and a bounded live smoke test.
 - [ ] Verify complete games against known baselines in a controlled environment.
