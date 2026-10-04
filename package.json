@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "@fortemate/dicechess-bot-runtime": "0.1.0-alpha.1",
-    "@fortemate/dicechess-engine": "0.13.0"
+    "@fortemate/dicechess-engine": "0.14.1"
   },
   "devDependencies": {
     "prettier": "3.9.9",
