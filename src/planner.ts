@@ -233,7 +233,7 @@ export async function planTurn(
   const step = async (): Promise<void> => {
     if (Object.keys(node).length === 0) return;
     check();
-    const keys = Object.keys(node).sort((a, b) => a.localeCompare(b));
+    const keys = Object.keys(node).sort((a, b) => a.localeCompare(b, "en"));
     const suffixes = completeSuffixes(node, limits.maxOptions);
     check();
     if (suffixes.length === 1) advance(suffixes[0]!);

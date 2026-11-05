@@ -27,7 +27,9 @@ export function snapshotTree(
     const keys = Reflect.ownKeys(value);
     if (keys.some((key) => typeof key !== "string"))
       throw new PlannerError("invalid_tree");
-    for (const key of (keys as string[]).sort((a, b) => a.localeCompare(b))) {
+    for (const key of (keys as string[]).sort((a, b) =>
+      a.localeCompare(b, "en"),
+    )) {
       const descriptor = Object.getOwnPropertyDescriptor(value, key);
       if (
         !uci.test(key) ||
@@ -55,7 +57,7 @@ export function completeSuffixes(
   const paths: (readonly string[])[] = [];
   const visit = (current: MoveTree, prefix: readonly string[]): void => {
     if (paths.length > limit) return;
-    const keys = Object.keys(current).sort((a, b) => a.localeCompare(b));
+    const keys = Object.keys(current).sort((a, b) => a.localeCompare(b, "en"));
     if (keys.length === 0) paths.push(Object.freeze([...prefix]));
     else
       for (const move of keys) {
