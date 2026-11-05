@@ -12,6 +12,38 @@ import sys
 from urllib.parse import unquote, urlsplit
 
 
+def _check_links(path: Path, name: str, content: str) -> tuple[list[str], int]:
+    errors: list[str] = []
+    links = 0
+    for target in re.findall(r"\[[^\]\n]*\]\(([^)\n]+)\)", content):
+        parsed = urlsplit(target.strip().strip("<>"))
+        if parsed.scheme or parsed.netloc or not parsed.path:
+            continue
+        links += 1
+        destination = path.parent / unquote(parsed.path)
+        if not destination.exists():
+            errors.append(f"{name}: missing local link target: {target}")
+    return errors, links
+
+
+def _check_document(root: Path, name: str) -> tuple[list[str], int]:
+    path = root / name
+    try:
+        content = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as error:
+        return [f"{name}: cannot read UTF-8: {error}"], 0
+
+    errors: list[str] = []
+    if not content.endswith("\n"):
+        errors.append(f"{name}: missing final newline")
+    for number, line in enumerate(content.splitlines(), start=1):
+        if line.rstrip() != line:
+            errors.append(f"{name}:{number}: trailing whitespace")
+    link_errors, links = _check_links(path, name, content)
+    errors.extend(link_errors)
+    return errors, links
+
+
 def main() -> int:
     root = Path(__file__).resolve().parents[1]
     names = subprocess.check_output(
@@ -22,25 +54,9 @@ def main() -> int:
     errors: list[str] = []
     links = 0
     for name in documents:
-        path = root / name
-        try:
-            content = path.read_text(encoding="utf-8")
-        except (OSError, UnicodeError) as error:
-            errors.append(f"{name}: cannot read UTF-8: {error}")
-            continue
-        if not content.endswith("\n"):
-            errors.append(f"{name}: missing final newline")
-        for number, line in enumerate(content.splitlines(), start=1):
-            if line.rstrip() != line:
-                errors.append(f"{name}:{number}: trailing whitespace")
-        for target in re.findall(r"\[[^\]\n]*\]\(([^)\n]+)\)", content):
-            parsed = urlsplit(target.strip().strip("<>"))
-            if parsed.scheme or parsed.netloc or not parsed.path:
-                continue
-            links += 1
-            destination = path.parent / unquote(parsed.path)
-            if not destination.exists():
-                errors.append(f"{name}: missing local link target: {target}")
+        doc_errors, doc_links = _check_document(root, name)
+        errors.extend(doc_errors)
+        links += doc_links
     if not documents:
         errors.append("No Markdown files found")
     if errors:
