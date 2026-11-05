@@ -192,8 +192,8 @@ export async function planTurn(
   };
 
   const chooseNext = async (original: readonly string[]): Promise<string> => {
-    let candidates = original;
-    while (candidates.length > 1) {
+    const narrow = async (candidates: readonly string[]): Promise<string> => {
+      if (candidates.length <= 1) return candidates[0]!;
       check();
       const micro = question(
         "micro-move",
@@ -224,14 +224,16 @@ export async function planTurn(
         size = Math.max(2, Math.floor(size / 2));
       }
       if (!groups || !grouped) throw new PlannerError("question_too_large");
-      candidates = groups[await select(grouped)]!;
-    }
-    return candidates[0]!;
+      const nextCandidates = groups[await select(grouped)]!;
+      return narrow(nextCandidates);
+    };
+    return narrow(original);
   };
 
-  while (Object.keys(node).length > 0) {
+  const step = async (): Promise<void> => {
+    if (Object.keys(node).length === 0) return;
     check();
-    const keys = Object.keys(node).sort();
+    const keys = Object.keys(node).sort((a, b) => a.localeCompare(b));
     const suffixes = completeSuffixes(node, limits.maxOptions);
     check();
     if (suffixes.length === 1) advance(suffixes[0]!);
@@ -241,7 +243,10 @@ export async function planTurn(
       if (fits(complete)) advance(suffixes[await select(complete)]!);
       else advance([await chooseNext(keys)]);
     }
-  }
+    return step();
+  };
+
+  await step();
   check();
   if (!isCompletePath(root, prefix)) throw new PlannerError("invalid_choice");
   return Object.freeze([...prefix]);
